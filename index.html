@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="bn" class="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Study Tracker</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#059669">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Study Tracker">
+<link rel="apple-touch-icon" href="icon-192.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Inter:wght@500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'SolaimanLipi';src:local('SolaimanLipi'),url('https://cdn.jsdelivr.net/gh/fontdesh/SolaimanLipi@master/SolaimanLipi.woff2') format('woff2');font-display:swap}
+@font-face{font-family:'Kalpurush';src:local('Kalpurush'),url('https://cdn.jsdelivr.net/gh/fontdesh/Kalpurush@master/kalpurush.woff2') format('woff2');font-display:swap}
+body{-webkit-tap-highlight-color:transparent}
+.no-scrollbar::-webkit-scrollbar{display:none}.no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
+@keyframes slideIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.card-animate{animation:slideIn .2s ease-out forwards}
+</style>
+<script>
+tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['"SolaimanLipi"','"Kalpurush"','"Hind Siliguri"','"Noto Sans Bengali"','"Inter"','sans-serif'],display:['"Inter"','"SolaimanLipi"','"Hind Siliguri"','sans-serif']}}}}
+</script>
+</head>
+<body class="min-h-screen flex flex-col font-sans antialiased bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-200">
+
+<div id="toast" class="fixed bottom-5 right-4 left-4 sm:left-auto sm:w-[440px] z-50 transform transition-all duration-300 translate-y-32 opacity-0 pointer-events-none">
+  <div class="bg-slate-900 dark:bg-slate-800 text-white px-4 py-3.5 rounded-2xl shadow-2xl flex items-center justify-between gap-3 border border-slate-700 pointer-events-auto">
+    <div class="flex items-center gap-2.5 min-w-0">
+      <span id="toast-icon" class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-sm font-bold shrink-0">✓</span>
+      <p id="toast-message" class="text-xs sm:text-sm font-medium leading-snug"></p>
+    </div>
+    <button id="toast-undo-btn" class="hidden shrink-0 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition cursor-pointer shadow-sm">↩ ভুল হয়েছে? Undo</button>
+  </div>
+</div>
+
+<header class="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 transition-colors">
+  <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+    <div class="flex items-center gap-3 min-w-0">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white flex items-center justify-center shadow-sm shrink-0">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+      </div>
+      <div class="min-w-0">
+        <h1 class="font-display text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight">Smart Study Tracker</h1>
+        <p id="header-date" class="text-xs text-slate-500 dark:text-slate-400 truncate"></p>
+      </div>
+    </div>
+    <div class="relative shrink-0" id="more-menu-wrapper">
+      <button id="menu-btn" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition cursor-pointer" title="মেনু" aria-label="মেনু">
+        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="5" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="12" cy="19" r="2"></circle></svg>
+      </button>
+      <div id="more-dropdown" class="hidden absolute right-0 mt-2 w-64 rounded-2xl bg-white dark:bg-slate-800 shadow-2xl border border-slate-200 dark:border-slate-700 py-2 z-40 text-sm">
+        <button id="m-theme" class="w-full px-4 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center justify-between text-slate-700 dark:text-slate-200 cursor-pointer">
+          <span class="flex items-center gap-2.5"><span id="menu-theme-icon">🌙</span><span id="menu-theme-label">ডার্ক মোড</span></span>
+          <span class="text-[11px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300" id="menu-theme-badge">Light</span>
+        </button>
+        <div class="border-t border-slate-100 dark:border-slate-700 my-1"></div>
+        <button id="m-share" class="w-full px-4 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer">☁️ Drive-এ ব্যাকআপ পাঠান</button>
+        <button id="m-json" class="w-full px-4 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer">💾 ব্যাকআপ ডাউনলোড (JSON)</button>
+        <label class="w-full px-4 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2.5 text-slate-700 dark:text-slate-200 cursor-pointer">📂 ব্যাকআপ রিস্টোর
+          <input type="file" id="import-json-input" accept=".json,application/json" class="hidden"></label>
+        <button id="m-csv" class="w-full px-4 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer">📊 এক্সেল (CSV) ডাউনলোড</button>
+        <div class="border-t border-slate-100 dark:border-slate-700 my-1"></div>
+        <button id="m-demo" class="w-full px-4 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-700 text-amber-600 dark:text-amber-400 cursor-pointer">🔄 ডেমো রিসেট</button>
+        <button id="m-clear" class="w-full px-4 py-2.5 text-left hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 cursor-pointer">🧹 সব ডাটা মুছুন</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="flex-1 max-w-5xl w-full mx-auto px-4 py-4 space-y-3.5">
+  <div id="backup-banner" class="hidden"></div>
+  <section id="cards" class="grid grid-cols-2 sm:grid-cols-6 gap-2"></section>
+  <section>
+    <button id="add-btn" class="w-full py-3.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-bold text-sm sm:text-base shadow-sm hover:shadow transition flex items-center justify-center gap-2 cursor-pointer">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path></svg>
+      <span>নতুন পড়া যোগ করুন</span></button>
+  </section>
+  <section class="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2.5">
+    <div class="flex flex-col sm:flex-row gap-2">
+      <div class="relative flex-1">
+        <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        <input type="text" id="search-input" placeholder="টপিক বা নোট দিয়ে খুঁজুন..." class="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none">
+      </div>
+      <button id="clear-filters-btn" class="hidden px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer shrink-0">✕ ফিল্টার রিসেট</button>
+    </div>
+    <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5" id="subject-pills-container"></div>
+  </section>
+  <section class="space-y-3 pt-1">
+    <div class="flex flex-wrap items-center justify-between gap-2 px-1">
+      <h2 class="text-base sm:text-lg font-bold text-slate-800 dark:text-white">রিভিশন অগ্রাধিকার তালিকা</h2>
+      <p class="text-xs text-slate-500 dark:text-slate-400">⬆️ যার রিভিশনের তারিখ আগে, সে সবার ওপরে</p>
+    </div>
+    <div id="topics-queue-container" class="space-y-2.5"></div>
+  </section>
+</main>
+
+<div id="topic-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" role="dialog" aria-modal="true">
+  <div class="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden card-animate">
+    <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-slate-800/50">
+      <h3 id="modal-title" class="text-lg font-bold text-slate-900 dark:text-white">নতুন পড়া যুক্ত করুন</h3>
+      <button type="button" id="modal-x" class="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 cursor-pointer" aria-label="বন্ধ">✕</button>
+    </div>
+    <form id="topic-form" class="p-5 space-y-4 max-h-[85vh] overflow-y-auto">
+      <input type="hidden" id="edit-topic-id">
+      <div>
+        <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">বিষয় *</label>
+        <select id="form-subject-select" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"></select>
+        <input type="text" id="form-subject-custom" maxlength="60" placeholder="নতুন বিষয়..." class="hidden mt-2 w-full px-3.5 py-2.5 rounded-xl border border-emerald-400 bg-emerald-50/30 dark:bg-slate-800 text-sm focus:outline-none">
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">টপিক *</label>
+        <input type="text" id="form-topic" required maxlength="200" placeholder="যেমন: কারক ও বিভক্তি" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none">
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div><label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">পৃষ্ঠা</label>
+          <input type="text" id="form-pages" maxlength="60" placeholder="পৃষ্ঠা ১০-১৫" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none"></div>
+        <div><label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">পড়ার তারিখ</label>
+          <input type="date" id="form-last-date" required class="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none"></div>
+      </div>
+      <div class="p-3.5 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 space-y-2">
+        <label class="block text-xs font-bold text-emerald-900 dark:text-emerald-300">১ম রিভিশন কবে দিতে চান?</label>
+        <div class="grid grid-cols-4 gap-1.5" id="schedule-preset-buttons">
+          <button type="button" data-preset="1" class="preset-btn">১ দিন পর</button>
+          <button type="button" data-preset="3" class="preset-btn">৩ দিন পর</button>
+          <button type="button" data-preset="none" class="preset-btn">স্বাভাবিক (৩০ দিন)</button>
+          <button type="button" data-preset="custom" class="preset-btn">তারিখ দিন</button>
+        </div>
+        <div id="custom-next-date-wrapper" class="hidden pt-1">
+          <input type="date" id="form-next-due-date" class="w-full px-3 py-2 rounded-xl border border-emerald-300 bg-white dark:bg-slate-800 text-xs">
+        </div>
+      </div>
+      <div id="revert-step-wrapper" class="hidden p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 flex items-center justify-between gap-2">
+        <span class="text-xs text-amber-900 dark:text-amber-300">শেষ রিভিশন বাতিল:</span>
+        <button type="button" id="revert-btn" class="text-xs font-bold px-3 py-1.5 rounded-xl bg-amber-500 text-slate-950 cursor-pointer">↩ বাতিল</button>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">নোটস</label>
+        <textarea id="form-notes" rows="3" maxlength="5000" placeholder="প্রশ্ন ও শর্ট নোট..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none"></textarea>
+      </div>
+      <div class="pt-2 flex items-center justify-end gap-2.5 border-t border-slate-100 dark:border-slate-800">
+        <button type="button" id="modal-cancel" class="px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 cursor-pointer">বাতিল</button>
+        <button type="submit" class="px-5 py-2.5 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm cursor-pointer">সংরক্ষণ</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="confirm-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" role="dialog" aria-modal="true">
+  <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-5 space-y-4">
+    <h3 id="confirm-heading" class="text-base font-bold text-slate-900 dark:text-white"></h3>
+    <p id="confirm-text" class="text-xs text-slate-500 dark:text-slate-400"></p>
+    <div class="flex items-center justify-end gap-2 pt-2">
+      <button id="confirm-cancel" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 cursor-pointer">বাতিল</button>
+      <button id="confirm-ok" class="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 text-white cursor-pointer">নিশ্চিত করুন</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const KEY = 'smart_study_tracker_final_v1', THEME_KEY = 'smart_study_tracker_theme', BACKUP_KEY = KEY + '_backup';
+const ALL = 'সব বিষয়', MAX_DAYS = 30; // কোনো টপিক এর বেশি দিন due-এর বাইরে থাকবে না; "স্বাভাবিক" = শেষ রিভিশন + ৩০ দিন
+const ISO = /^\d{4}-\d{2}-\d{2}$/;
+const BN = ['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
+const toBn = n => String(n).replace(/\d/g, d => BN[d]);
+
+/* ---------- Safe DOM helper ---------- */
+function el(tag, props, ...kids) {
+  const e = document.createElement(tag);
+  for (const k in (props || {})) {
+    const v = props[k];
+    if (v == null || v === false) continue;
+    if (k === 'class') e.className = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (k === 'text') e.textContent = v;
+    else e.setAttribute(k, v);
+  }
+  kids.flat().forEach(c => { if (c != null && c !== false) e.append(c.nodeType ? c : document.createTextNode(String(c))); });
+  return e;
+}
+
+/* ---------- Dates ---------- */
+const pad = n => String(n).padStart(2, '0');
+const isoOf = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const today = () => isoOf(new Date());
+function addDays(base, n) { const [y, m, d] = base.split('-').map(Number); return isoOf(new Date(y, m - 1, d + n)); }
+function diffDays(a, b) { // b - a
+  const [y1, m1, d1] = a.split('-').map(Number), [y2, m2, d2] = b.split('-').map(Number);
+  return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86400000);
+}
+function fmt(iso) {
+  if (!iso) return '';
+  const m = ['জানু','ফেব্রু','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টে','অক্টো','নভে','ডিসে'];
+  const [y, mn, d] = iso.split('-').map(Number);
+  return `${toBn(d)} ${m[mn - 1]}, ${toBn(y)}`;
+}
+function headerDate() {
+  const days = ['রবিবার','সোমবার','মঙ্গলবার','বুধবার','বৃহস্পতিবার','শুক্রবার','শনিবার'];
+  const months = ['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
+  const n = new Date();
+  return `${days[n.getDay()]}, ${toBn(n.getDate())} ${months[n.getMonth()]} ${toBn(n.getFullYear())}`;
+}
+
+/* ---------- Demo data (covers every dashboard section) ---------- */
+function demoTopics() {
+  const t = today(), o = n => addDays(t, n);
+  const mk = (id, subject, topic, pages, notes, created, hist, next) => ({
+    id, subject, topic, pages, notes, createdDate: created,
+    lastRevisedDate: hist.length ? hist[hist.length - 1] : created,
+    nextDueDate: next, history: hist.map((date, i) => ({ date, revNumber: i + 1 }))
+  });
+  return [
+    mk('demo-1', 'বাংলা', 'চর্যাপদ ও বাংলা সাহিত্যের প্রাচীন যুগ', 'পৃষ্ঠা ০৫-১৪', '• আবিষ্কৃত হয় ১৯০৭ সালে হরপ্রসাদ শাস্ত্রী কর্তৃক নেপাল থেকে।\n• সর্বোচ্চ পদ রচয়িতা কাহ্নপা (১৩টি পদ)।', o(-30), [o(-22)], o(-2)),
+    mk('demo-2', 'সাধারণ জ্ঞান', 'বাংলাদেশের সংবিধান ও গুরুত্বপূর্ণ সংশোধনীসমূহ', 'পৃষ্ঠা ১১২-১২৫', '• সংবিধান কার্যকর হয় ১৬ ডিসেম্বর ১৯৭২।\n• মৌলিক অধিকার: অনুচ্ছেদ ২৭–৪৪।', o(-15), [o(-12), o(-1)], o(2)),
+    mk('demo-3', 'ইংরেজি', 'Conditional Sentences & Right Form of Verbs', 'পৃষ্ঠা ৪২-৫০', '• 3rd Conditional: If + Past Perfect, Sub + would have + V3.', o(-8), [o(-6), t], o(20)),
+    mk('demo-4', 'গণিত', 'শতকরা ও লাভ-ক্ষতি', 'পৃষ্ঠা ৮-১৬', '• লাভ% = (লাভ ÷ ক্রয়মূল্য) × ১০০', t, [], o(1)),
+    mk('demo-5', 'বিজ্ঞান ও আইসিটি', 'ইন্টারনেট ও নেটওয়ার্ক', 'পৃষ্ঠা ২০-২৮', '', o(-12), [o(-5)], null),
+    mk('demo-6', 'গণিত', 'অনুপাত ও সমানুপাত', 'পৃষ্ঠা ৩০-৩৮', 'পরীক্ষার আগের দিন রিভিশন', o(-4), [o(-3)], o(9))
+  ];
+}
+
+/* ---------- Data ---------- */
+let topics = [], selectedSubject = ALL, zoneFilter = 'all', query = '', tabs = {}, preset = '1', undoSnap = null, storageOK = true;
+
+function normalize(x) {
+  if (!x || typeof x !== 'object' || Array.isArray(x)) return null;
+  const s = v => (typeof v === 'string' ? v : '').trim();
+  const topic = s(x.topic); if (!topic) return null;
+  const d = v => (typeof v === 'string' && ISO.test(v) ? v : null);
+  const created = d(x.createdDate) || d(x.lastRevisedDate) || today();
+  let hist = Array.isArray(x.history) ? x.history.filter(h => h && d(h.date)).map(h => d(h.date)).sort() : [];
+  return {
+    id: s(String(x.id ?? '')) || ('t-' + Date.now() + Math.random().toString(36).slice(2, 6)),
+    subject: s(x.subject) || 'অন্যান্য', topic, pages: s(x.pages), notes: typeof x.notes === 'string' ? x.notes.trim() : '',
+    createdDate: created, lastRevisedDate: hist.length ? hist[hist.length - 1] : (d(x.lastRevisedDate) || created),
+    nextDueDate: d(x.nextDueDate), history: hist.map((date, i) => ({ date, revNumber: i + 1 }))
+  };
+}
+function normalizeList(arr) {
+  const seen = new Set(); let skipped = 0; const out = [];
+  arr.forEach(x => {
+    const n = normalize(x);
+    if (!n) { skipped++; return; }
+    while (seen.has(n.id)) n.id += 'x';
+    seen.add(n.id); out.push(n);
+  });
+  return { out, skipped };
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(topics)); storageOK = true; return true; }
+  catch (e) { storageOK = false; toast('⚠️ সংরক্ষণ ব্যর্থ! স্টোরেজ ভরা বা ব্লকড। এখনই JSON ব্যাকআপ নিন।', { error: true }); return false; }
+}
+function load() {
+  let raw = null;
+  try { raw = localStorage.getItem(KEY); } catch (e) { toast('⚠️ ব্রাউজার স্টোরেজ পড়া যাচ্ছে না — ডেটা সংরক্ষিত হবে না।', { error: true }); }
+  if (raw === null) { topics = demoTopics(); save(); return; } // শুধু প্রথমবার ডেমো
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) throw new Error('not array');
+    topics = normalizeList(parsed).out;
+  } catch (e) {
+    try { localStorage.setItem(KEY + '_corrupt', raw); } catch (_) {}
+    topics = [];
+    toast('⚠️ সংরক্ষিত ডেটা নষ্ট ছিল; কপি আলাদা কী-তে রাখা হয়েছে।', { error: true });
+  }
+}
+/* কোনো পরিবর্তনের আগে snapshot, পরে commit */
+function snapshot() { undoSnap = JSON.stringify(topics); }
+function commit(msg) {
+  const hasUndo = undoSnap !== null;
+  const ok = save();
+  renderApp();
+  if (ok) toast(msg, { undo: hasUndo });
+}
+function undo() {
+  if (undoSnap === null) return;
+  try { topics = JSON.parse(undoSnap); } catch (e) { return; }
+  undoSnap = null; save(); renderApp(); toast('↩ আগের অবস্থায় ফেরানো হয়েছে!');
+}
+
+/* ---------- Toast ---------- */
+let toastTimer;
+function toast(msg, o = {}) {
+  $('toast-message').textContent = msg;
+  const ic = $('toast-icon');
+  ic.textContent = o.error ? '!' : '✓';
+  ic.className = 'w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ' + (o.error ? 'bg-rose-500/30 text-rose-300' : 'bg-emerald-500/20 text-emerald-400');
+  $('toast-undo-btn').classList.toggle('hidden', !o.undo);
+  const t = $('toast');
+  t.classList.remove('translate-y-32', 'opacity-0', 'pointer-events-none'); t.classList.add('translate-y-0', 'opacity-100');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    t.classList.add('translate-y-32', 'opacity-0', 'pointer-events-none'); t.classList.remove('translate-y-0', 'opacity-100');
+  }, o.error ? 7000 : o.undo ? 6000 : 3000);
+}
+
+/* ---------- Priority logic (পরবর্তী রিভিশন তারিখই মূল ভিত্তি) ---------- */
+function effDue(t) {
+  const cap = addDays(t.lastRevisedDate || t.createdDate, MAX_DAYS);
+  return t.nextDueDate && t.nextDueDate < cap ? t.nextDueDate : cap; // নির্ধারিত তারিখ থাকলে সেটা, তবে ৩০ দিনের বেশি নয়
+}
+function evaluate(t) {
+  const td = today(), due = effDue(t), left = diffDays(td, due);
+  const revisedToday = t.history.some(h => h.date === td);
+  const createdToday = t.createdDate === td && t.history.length === 0;
+  const zone = left <= 0 ? 'red' : left <= 3 ? 'yellow' : 'green';
+  const sky = revisedToday || createdToday;
+  const S = {
+    red: ['bg-rose-500 animate-pulse', 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950 dark:text-rose-300', 'border-l-4 border-l-rose-500 border-slate-200 dark:border-slate-800'],
+    yellow: ['bg-amber-500', 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950 dark:text-amber-300', 'border-l-4 border-l-amber-500 border-slate-200 dark:border-slate-800'],
+    green: sky ? ['bg-sky-500', 'bg-sky-100 text-sky-800 border-sky-300 dark:bg-sky-950 dark:text-sky-300', 'border-l-4 border-l-sky-500 border-slate-200 dark:border-slate-800']
+               : ['bg-emerald-500', 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300', 'border-l-4 border-l-emerald-500 border-slate-200 dark:border-slate-800']
+  }[zone];
+  const badge = left < 0 ? `🚨 ওভারডিউ: ${toBn(-left)} দিন` : left === 0 ? '🎯 আজকের নির্ধারিত' : `⏳ পরের রিভিশন: ${toBn(left)} দিন পরে`;
+  return { zone, due, left, revisedToday, createdToday, badge, dot: S[0], badgeCls: S[1], border: S[2] };
+}
+const SUBJ_COLORS = { 'বাংলা': 'bg-pink-50 text-pink-700 border-pink-200 dark:bg-pink-950/50 dark:text-pink-300', 'সাধারণ জ্ঞান': 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/50 dark:text-sky-300', 'গণিত': 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/50 dark:text-purple-300', 'ইংরেজি': 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-300' };
+const subjColor = s => Object.prototype.hasOwnProperty.call(SUBJ_COLORS, s) ? SUBJ_COLORS[s] : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300';
+
+/* ---------- Actions ---------- */
+const find = id => topics.find(t => t.id === id);
+function markDone(id) {
+  const t = find(id); if (!t) return;
+  snapshot();
+  const td = today();
+  t.history.push({ date: td, revNumber: t.history.length + 1 });
+  t.lastRevisedDate = td; t.nextDueDate = null; // পরেরটি স্বাভাবিক ব্যবধানে নির্ধারিত হবে
+  commit(`"${t.topic}" — রিভিশন সম্পন্ন! পরের রিভিশন ${fmt(effDue(t))}`);
+}
+function setNext(id, dateOrNull) {
+  const t = find(id); if (!t) return;
+  if (dateOrNull && dateOrNull > addDays(t.lastRevisedDate || t.createdDate, MAX_DAYS)) { toast('⚠️ শেষ রিভিশন থেকে সর্বোচ্চ ৩০ দিনের মধ্যে তারিখ দিন।', { error: true }); return; }
+  snapshot(); t.nextDueDate = dateOrNull; commit(dateOrNull ? `পরের রিভিশন: ${fmt(dateOrNull)}` : 'স্বাভাবিক সময়সূচিতে ফেরানো হয়েছে');
+}
+function revertLast(id) {
+  const t = find(id); if (!t || !t.history.length) return;
+  snapshot();
+  t.history.pop();
+  t.lastRevisedDate = t.history.length ? t.history[t.history.length - 1].date : t.createdDate;
+  t.nextDueDate = null; // স্বাভাবিক সময়সূচি অনুযায়ী পুনর্গণনা
+  closeModal('topic-modal'); commit('শেষ রিভিশন বাতিল হয়েছে!');
+}
+function deleteTopic(id) {
+  askConfirm('মুছে ফেলবেন?', 'টপিকটি মুছে যাবে (পরে Undo করা যাবে)।', () => { snapshot(); topics = topics.filter(t => t.id !== id); commit('টপিক মুছে ফেলা হয়েছে!'); });
+}
+
+/* ---------- Modals ---------- */
+function openModal(id) { const m = $(id); m.classList.remove('hidden'); m.classList.add('flex'); }
+function closeModal(id) { const m = $(id); m.classList.add('hidden'); m.classList.remove('flex'); }
+let confirmFn = null;
+function askConfirm(head, text, fn) { $('confirm-heading').textContent = head; $('confirm-text').textContent = text; confirmFn = fn; openModal('confirm-modal'); $('confirm-cancel').focus(); }
+
+const PRESET_ON = 'preset-btn py-2 px-1 rounded-xl text-xs font-bold border transition cursor-pointer bg-emerald-600 text-white border-emerald-600';
+const PRESET_OFF = 'preset-btn py-2 px-1 rounded-xl text-xs font-bold border transition cursor-pointer bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200';
+function selectPreset(p) {
+  preset = p;
+  document.querySelectorAll('.preset-btn').forEach(b => { b.className = b.dataset.preset === p ? PRESET_ON : PRESET_OFF; });
+  $('custom-next-date-wrapper').classList.toggle('hidden', p !== 'custom');
+}
+function openTopicModal(editId) {
+  const sel = $('form-subject-select');
+  const subs = [...new Set(['বাংলা', 'সাধারণ জ্ঞান', 'গণিত', 'ইংরেজি', 'বিজ্ঞান ও আইসিটি', ...topics.map(t => t.subject)])];
+  sel.replaceChildren(...subs.map(s => el('option', { value: s, text: s })), el('option', { value: '__custom__', text: '+ নতুন বিষয়...' }));
+  $('form-subject-custom').classList.add('hidden'); $('form-subject-custom').value = '';
+  const item = editId ? find(editId) : null;
+  $('edit-topic-id').value = item ? item.id : '';
+  $('modal-title').textContent = item ? 'পড়া এডিট করুন' : 'নতুন পড়া যুক্ত করুন';
+  sel.value = item ? item.subject : (selectedSubject !== ALL ? selectedSubject : 'বাংলা');
+  $('form-topic').value = item ? item.topic : '';
+  $('form-pages').value = item ? item.pages : '';
+  $('form-last-date').value = item ? (item.lastRevisedDate || item.createdDate) : today();
+  $('form-notes').value = item ? item.notes : '';
+  $('form-next-due-date').value = item && item.nextDueDate ? item.nextDueDate : '';
+  selectPreset(item ? (item.nextDueDate ? 'custom' : 'none') : '1');
+  $('revert-step-wrapper').classList.toggle('hidden', !(item && item.history.length));
+  openModal('topic-modal'); $('form-topic').focus();
+}
+$('topic-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const editId = $('edit-topic-id').value, sel = $('form-subject-select').value;
+  const subject = sel === '__custom__' ? ($('form-subject-custom').value.trim() || 'অন্যান্য') : sel;
+  const topic = $('form-topic').value.trim(); if (!topic) return;
+  const date = $('form-last-date').value || today();
+  let next = null;
+  if (preset === '1') next = addDays(date, 1);
+  else if (preset === '3') next = addDays(date, 3);
+  else if (preset === 'custom') {
+    next = $('form-next-due-date').value || null;
+    if (!next) { toast('⚠️ নির্দিষ্ট তারিখ বেছে নিন।', { error: true }); return; }
+    if (next > addDays(date, MAX_DAYS)) { toast('⚠️ রিভিশনের তারিখ পড়ার তারিখ থেকে সর্বোচ্চ ৩০ দিনের মধ্যে দিন।', { error: true }); return; }
+    if (next < date) { toast('⚠️ রিভিশনের তারিখ পড়ার তারিখের আগে হতে পারে না।', { error: true }); return; }
+  }
+  snapshot();
+  const data = { subject, topic, pages: $('form-pages').value.trim(), notes: $('form-notes').value.trim(), nextDueDate: next };
+  if (editId) {
+    const t = find(editId); if (!t) return;
+    Object.assign(t, data); t.lastRevisedDate = date;
+    if (t.history.length) t.history[t.history.length - 1].date = date; else t.createdDate = date;
+  } else {
+    topics.push({ id: 't-' + Date.now() + Math.random().toString(36).slice(2, 5), ...data, createdDate: date, lastRevisedDate: date, history: [] });
+  }
+  closeModal('topic-modal'); commit(editId ? 'আপডেট করা হয়েছে!' : 'নতুন পড়া যুক্ত হয়েছে!');
+});
+
+/* ---------- Rendering ---------- */
+const CARDS = [
+  ['new_today', '🌱 আজকে নতুন', 'bg-teal-50/70 dark:bg-teal-950/30 border-teal-300 dark:border-teal-800 hover:border-teal-500', 'text-teal-800 dark:text-teal-300', 'text-teal-700 dark:text-teal-300'],
+  ['today', '✅ আজকে রিভিশন', 'bg-sky-50/70 dark:bg-sky-950/30 border-sky-300 dark:border-sky-800 hover:border-sky-500', 'text-sky-800 dark:text-sky-300', 'text-sky-700 dark:text-sky-300'],
+  ['red', '🔴 জরুরি (due/overdue)', 'bg-white dark:bg-slate-900 border-rose-200 dark:border-rose-900 hover:border-rose-400', 'text-rose-700 dark:text-rose-400', 'text-rose-600 dark:text-rose-400'],
+  ['yellow', '🟡 সময় (৩ দিনের মধ্যে)', 'bg-white dark:bg-slate-900 border-amber-200 dark:border-amber-900 hover:border-amber-400', 'text-amber-700 dark:text-amber-400', 'text-amber-600 dark:text-amber-400'],
+  ['green', '🟢 টাটকা (পরে)', 'bg-white dark:bg-slate-900 border-emerald-200 dark:border-emerald-900 hover:border-emerald-400', 'text-emerald-700 dark:text-emerald-400', 'text-emerald-600 dark:text-emerald-400'],
+  ['all', '📚 মোট', 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-slate-400', 'text-slate-700 dark:text-slate-300', 'text-slate-800 dark:text-white']
+];
+const SECTIONS = { red: '🔴 জরুরি — রিভিশনের সময় হয়েছে', yellow: '🟡 কাছাকাছি — ৩ দিনের মধ্যে', green: '🟢 টাটকা — রিভিশনের তারিখ এখনো দূরে' };
+
+function renderApp() {
+  const infos = topics.map(evaluate), c = { new_today: 0, today: 0, red: 0, yellow: 0, green: 0, all: topics.length };
+  infos.forEach(i => { if (i.createdToday) c.new_today++; if (i.revisedToday) c.today++; c[i.zone]++; });
+  $('cards').replaceChildren(...CARDS.map(([k, label, box, lc, nc]) => el('button', {
+    class: `text-left p-2.5 rounded-2xl border-2 shadow-sm transition cursor-pointer ${box} ${zoneFilter === k ? 'ring-2 ring-offset-2 ring-emerald-500' : ''}`,
+    onclick: () => { zoneFilter = zoneFilter === k ? 'all' : k; renderApp(); }
+  }, el('span', { class: `inline-flex text-[11px] font-bold ${lc}`, text: label }), el('div', { class: `mt-1 text-lg sm:text-xl font-bold ${nc}`, text: toBn(c[k]) }))));
+
+  const subs = [ALL, ...new Set(topics.map(t => t.subject))];
+  if (!subs.includes(selectedSubject)) selectedSubject = ALL;
+  $('subject-pills-container').replaceChildren(...subs.map(s => el('button', {
+    class: `px-3 py-1.5 rounded-xl text-xs font-bold border transition cursor-pointer shrink-0 ${selectedSubject === s ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}`,
+    onclick: () => { selectedSubject = s; renderApp(); }
+  }, `${s === ALL ? '🔀 সব' : s} (${toBn(s === ALL ? topics.length : topics.filter(t => t.subject === s).length)})`)));
+  $('clear-filters-btn').classList.toggle('hidden', selectedSubject === ALL && zoneFilter === 'all' && !query);
+  renderQueue(); updateBanner();
+}
+
+function renderQueue() {
+  const box = $('topics-queue-container');
+  const list = topics.map(t => ({ t, i: evaluate(t) })).filter(({ t, i }) => {
+    if (selectedSubject !== ALL && t.subject !== selectedSubject) return false;
+    if (zoneFilter === 'new_today' && !i.createdToday) return false;
+    if (zoneFilter === 'today' && !i.revisedToday) return false;
+    if (['red', 'yellow', 'green'].includes(zoneFilter) && i.zone !== zoneFilter) return false;
+    return !query || `${t.subject} ${t.topic} ${t.pages} ${t.notes}`.toLowerCase().includes(query);
+  }).sort((a, b) => a.i.due.localeCompare(b.i.due) || a.t.topic.localeCompare(b.t.topic));
+  if (!list.length) { box.replaceChildren(el('div', { class: 'bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-8 text-center text-xs text-slate-500', text: 'কোনো টপিক পাওয়া যায়নি।' })); return; }
+  const out = []; let n = 0;
+  ['red', 'yellow', 'green'].forEach(z => {
+    const g = list.filter(x => x.i.zone === z); if (!g.length) return;
+    out.push(el('h3', { class: 'text-sm font-bold text-slate-600 dark:text-slate-300 pt-2 px-1', text: `${SECTIONS[z]} (${toBn(g.length)})` }));
+    g.forEach(x => out.push(card(x.t, x.i, ++n)));
+  });
+  box.replaceChildren(...out);
+}
+
+function card(t, i, n) {
+  const tab = tabs[t.id] || null, rc = t.history.length;
+  const toggle = k => { tabs[t.id] = tabs[t.id] === k ? null : k; renderQueue(); };
+  const tabBtn = (k, label, on) => el('button', { class: `py-1.5 px-2 rounded-xl text-xs font-bold border transition cursor-pointer ${tab === k ? on : 'bg-slate-50 border-slate-200 text-slate-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300'}`, onclick: () => toggle(k) }, `${label} ${tab === k ? '▲' : '▼'}`);
+  const pill = 'text-xs font-semibold px-2.5 py-0.5 rounded-lg border';
+  const meta = el('div', { class: 'flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400' },
+    t.pages && el('span', { text: '📖 ' + t.pages }), el('span', { text: '🌱 ১ম পড়া: ' + fmt(t.createdDate) }),
+    el('span', { text: '🔄 শেষ রিভিশন: ' + fmt(t.lastRevisedDate) }),
+    el('span', { class: 'text-amber-700 dark:text-amber-400 font-semibold', text: `🎯 ${t.nextDueDate && t.nextDueDate <= i.due ? 'নির্ধারিত' : 'স্বাভাবিক (৩০ দিন)'}: ${fmt(i.due)}` }));
+  const panel = !tab ? null :
+    tab === 'notes' ? el('div', { class: 'p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-700 dark:text-slate-200 whitespace-pre-line leading-relaxed', text: t.notes || 'কোনো নোট লেখা হয়নি।' }) :
+    tab === 'history' ? el('div', { class: 'p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-1' },
+      rc ? [...t.history].reverse().map(h => el('div', { class: 'flex items-center justify-between text-xs py-1 border-b border-slate-200 dark:border-slate-700' }, el('span', { class: 'font-bold text-emerald-700 dark:text-emerald-400', text: `রিভিশন #${toBn(h.revNumber)}` }), el('span', { text: fmt(h.date) })))
+         : el('p', { class: 'text-xs text-slate-400 italic', text: 'এখনো কোনো রিভিশন দেওয়া হয়নি।' })) :
+    (() => {
+      const inp = el('input', { type: 'date', class: 'flex-1 px-2.5 py-1.5 rounded-lg border text-xs bg-white dark:bg-slate-900', value: t.nextDueDate || addDays(today(), 2) });
+      const q = d => el('button', { class: 'py-1.5 rounded-lg bg-white dark:bg-slate-900 border text-xs font-bold cursor-pointer', onclick: () => setNext(t.id, addDays(today(), d)) }, `+${toBn(d)} দিন পর`);
+      return el('div', { class: 'p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-2' },
+        el('div', { class: 'flex items-center justify-between' }, el('span', { class: 'text-xs font-bold text-amber-700 dark:text-amber-400', text: 'দ্রুত পরের রিভিশন সেট করুন:' }),
+          t.nextDueDate && el('button', { class: 'text-xs text-rose-600 underline cursor-pointer', onclick: () => setNext(t.id, null) }, '৩০ দিনের স্বাভাবিকে ফেরান')),
+        el('div', { class: 'grid grid-cols-3 gap-1.5' }, q(1), q(2), q(3)),
+        el('div', { class: 'flex gap-2' }, inp, el('button', { class: 'px-3.5 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold cursor-pointer', onclick: () => { if (!inp.value) return; setNext(t.id, inp.value); } }, 'সেট করুন')));
+    })();
+
+  return el('div', { class: `bg-white dark:bg-slate-900 rounded-2xl border ${i.border} p-4 shadow-sm hover:shadow-md transition card-animate space-y-2.5` },
+    el('div', { class: 'flex flex-col sm:flex-row sm:items-start justify-between gap-3' },
+      el('div', { class: 'space-y-1.5 flex-1 min-w-0' },
+        el('div', { class: 'flex flex-wrap items-center gap-1.5' },
+          el('span', { class: 'text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500', text: '#' + toBn(n) }),
+          el('span', { class: `inline-flex items-center gap-1 text-xs font-bold px-2.5 py-0.5 rounded-lg border ${i.badgeCls}` }, el('span', { class: `w-1.5 h-1.5 rounded-full ${i.dot}` }), el('span', { text: i.badge })),
+          i.createdToday && el('span', { class: `${pill} bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-950/50 dark:text-teal-300`, text: '🌱 আজকে নতুন' }),
+          i.revisedToday && el('span', { class: `${pill} bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/50 dark:text-sky-300`, text: '✅ আজকে রিভিশন' }),
+          el('span', { class: `${pill} ${subjColor(t.subject)}`, text: t.subject }),
+          el('span', { class: `${pill} font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700`, text: `মোট রিভিশন: ${toBn(rc)} বার` })),
+        el('h3', { class: 'text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-snug break-words', text: t.topic }), meta),
+      el('div', { class: 'flex sm:flex-col items-center sm:items-end justify-between gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800 shrink-0' },
+        el('button', { class: 'w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-xl shadow-sm transition cursor-pointer', onclick: () => markDone(t.id) }, '🔄 রিভিশন সম্পন্ন (Done)'),
+        el('div', { class: 'flex items-center gap-1' },
+          el('button', { class: 'px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-500 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer', onclick: () => openTopicModal(t.id) }, '✏️ এডিট'),
+          el('button', { class: 'px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer', 'aria-label': 'মুছুন', onclick: () => deleteTopic(t.id) }, '🗑️')))),
+    el('div', { class: 'pt-1 border-t border-slate-100 dark:border-slate-800 space-y-2' },
+      el('div', { class: 'grid grid-cols-3 gap-1.5' },
+        tabBtn('notes', '📝 নোটস', 'bg-emerald-50 border-emerald-300 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'),
+        tabBtn('history', `⏳ ইতিহাস (${toBn(rc)})`, 'bg-sky-50 border-sky-300 text-sky-800 dark:bg-sky-950 dark:text-sky-300'),
+        tabBtn('schedule', '📅 পরের রিভিশন', 'bg-amber-50 border-amber-300 text-amber-800 dark:bg-amber-950 dark:text-amber-300')), panel));
+}
+
+/* ---------- Theme ---------- */
+function applyThemeUI() {
+  const dark = document.documentElement.classList.contains('dark');
+  $('menu-theme-icon').textContent = dark ? '☀️' : '🌙';
+  $('menu-theme-label').textContent = dark ? 'লাইট মোড' : 'ডার্ক মোড';
+  $('menu-theme-badge').textContent = dark ? 'Dark' : 'Light';
+}
+function initTheme() {
+  let s = null; try { s = localStorage.getItem(THEME_KEY); } catch (e) {}
+  if (s === 'dark' || (!s && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.classList.add('dark');
+  applyThemeUI();
+}
+function toggleTheme() {
+  const dark = document.documentElement.classList.toggle('dark');
+  try { localStorage.setItem(THEME_KEY, dark ? 'dark' : 'light'); } catch (e) {}
+  applyThemeUI();
+}
+
+/* ---------- Export / Import ---------- */
+function download(blob, name) {
+  const u = URL.createObjectURL(blob), a = el('a', { href: u, download: name });
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 1000);
+}
+const LB_KEY = KEY + '_last_backup', FR_KEY = KEY + '_first_run', BACKUP_DAYS = 7;
+let bannerHidden = false;
+function markBackup() { try { localStorage.setItem(LB_KEY, today()); } catch (e) {} updateBanner(); }
+async function shareBackup() {
+  const blob = new Blob([JSON.stringify(topics, null, 2)], { type: 'application/json' });
+  const name = 'Smart_Study_Backup.json'; // একই নাম — Drive-এ পুরোনো ভার্সন জমা থাকে
+  try {
+    const file = new File([blob], name, { type: 'application/json' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: 'Smart Study Backup' });
+      markBackup(); toast('ব্যাকআপ পাঠানো হয়েছে! Drive বেছে থাকলে সেভ হয়ে গেছে।'); return;
+    }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  try { download(blob, name); markBackup(); toast('শেয়ার সাপোর্ট নেই — ফাইল ডাউনলোড হয়েছে, নিজে Drive-এ রাখুন।'); }
+  catch (e) { toast('⚠️ ব্যাকআপ তৈরি করা যায়নি।', { error: true }); }
+}
+function updateBanner() {
+  const b = $('backup-banner'); if (!b) return;
+  let last = null, first = null;
+  try { last = localStorage.getItem(LB_KEY); first = localStorage.getItem(FR_KEY); if (!first) { first = today(); localStorage.setItem(FR_KEY, first); } } catch (e) {}
+  const base = last || first || today();
+  const stale = topics.length > 0 && !bannerHidden && diffDays(base, today()) >= BACKUP_DAYS;
+  b.classList.toggle('hidden', !stale);
+  if (!stale) return;
+  b.className = 'p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800 flex flex-wrap items-center justify-between gap-2';
+  b.replaceChildren(el('span', { class: 'text-xs sm:text-sm text-amber-900 dark:text-amber-300', text: `☁️ ${toBn(diffDays(base, today()))} দিন ধরে ব্যাকআপ নেওয়া হয়নি।` }),
+    el('div', { class: 'flex gap-2' },
+      el('button', { class: 'px-3 py-1.5 rounded-xl bg-amber-500 text-slate-950 text-xs font-bold cursor-pointer', onclick: shareBackup }, 'এখনই ব্যাকআপ'),
+      el('button', { class: 'px-3 py-1.5 rounded-xl text-xs text-slate-600 dark:text-slate-300 cursor-pointer', onclick: () => { bannerHidden = true; updateBanner(); } }, 'পরে')));
+}
+function exportJSON() {
+  try { markBackup(); download(new Blob([JSON.stringify(topics, null, 2)], { type: 'application/json' }), `Smart_Study_Backup_${today()}.json`); toast('ব্যাকআপ ডাউনলোড হয়েছে!'); }
+  catch (e) { toast('⚠️ ব্যাকআপ তৈরি করা যায়নি।', { error: true }); }
+}
+function importJSON(e) {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  const r = new FileReader();
+  r.onerror = () => toast('⚠️ ফাইল পড়া যায়নি।', { error: true });
+  r.onload = ev => {
+    let parsed;
+    try { parsed = JSON.parse(ev.target.result); } catch (err) { toast('⚠️ ভুল JSON ফাইল — বর্তমান ডেটা অক্ষত আছে।', { error: true }); return; }
+    if (!Array.isArray(parsed)) { toast('⚠️ ফাইলের কাঠামো ঠিক নয় (তালিকা প্রয়োজন) — বর্তমান ডেটা অক্ষত।', { error: true }); return; }
+    const { out, skipped } = normalizeList(parsed);
+    if (!out.length) { toast('⚠️ ফাইলে কোনো বৈধ টপিক নেই — বর্তমান ডেটা অক্ষত।', { error: true }); return; }
+    askConfirm('ব্যাকআপ রিস্টোর করবেন?', `${toBn(out.length)}টি টপিক পাওয়া গেছে${skipped ? ` (${toBn(skipped)}টি অবৈধ বাদ)` : ''}। বর্তমান ডেটা প্রতিস্থাপিত হবে, তবে আগে নিরাপদ কপি রাখা হবে ও Undo করা যাবে।`, () => {
+      try { localStorage.setItem(BACKUP_KEY, JSON.stringify(topics)); } catch (_) {}
+      snapshot(); topics = out; selectedSubject = ALL; zoneFilter = 'all'; commit('রিস্টোর সফল হয়েছে!');
+    });
+  };
+  r.readAsText(f);
+}
+function csvCell(v) {
+  let s = String(v ?? '').replace(/\r?\n/g, ' ');
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; // formula injection রোধ
+  return '"' + s.replace(/"/g, '""') + '"';
+}
+function exportCSV() {
+  if (!topics.length) { toast('এক্সপোর্ট করার মতো ডেটা নেই।', { error: true }); return; }
+  const rows = [['বিষয়', 'টপিক', 'পৃষ্ঠা', 'প্রথম পড়া', 'শেষ রিভিশন', 'পরের রিভিশন', 'মোট রিভিশন', 'নোট'],
+    ...topics.map(t => [t.subject, t.topic, t.pages, t.createdDate, t.lastRevisedDate, effDue(t), t.history.length, t.notes])];
+  try { download(new Blob(['\uFEFF' + rows.map(r => r.map(csvCell).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8;' }), `Smart_Study_${today()}.csv`); toast('CSV ডাউনলোড হয়েছে!'); }
+  catch (e) { toast('⚠️ CSV তৈরি করা যায়নি।', { error: true }); }
+}
+
+/* ---------- Wiring ---------- */
+const menu = () => $('more-dropdown');
+const closeMenu = () => menu().classList.add('hidden');
+const act = (id, fn) => $(id).addEventListener('click', () => { closeMenu(); fn(); });
+$('menu-btn').addEventListener('click', e => { e.stopPropagation(); menu().classList.toggle('hidden'); });
+document.addEventListener('click', e => { if (!$('more-menu-wrapper').contains(e.target)) closeMenu(); });
+act('m-theme', toggleTheme); act('m-json', exportJSON); act('m-share', shareBackup); act('m-csv', exportCSV);
+act('m-demo', () => askConfirm('ডেমো রিসেট করবেন?', 'বর্তমান সব টপিক ডেমো ডেটা দিয়ে প্রতিস্থাপিত হবে। আগে নিরাপদ কপি রাখা হবে ও Undo করা যাবে।', () => {
+  try { localStorage.setItem(BACKUP_KEY, JSON.stringify(topics)); } catch (_) {}
+  snapshot(); topics = demoTopics(); selectedSubject = ALL; zoneFilter = 'all'; tabs = {}; commit('ডেমো ডেটা লোড হয়েছে!');
+}));
+act('m-clear', () => askConfirm('সব ডাটা মুছবেন?', 'সব টপিক মুছে ফেলা হবে (Undo করা যাবে)।', () => { snapshot(); topics = []; commit('সব ডেটা মুছে ফেলা হয়েছে!'); }));
+$('import-json-input').addEventListener('change', e => { closeMenu(); importJSON(e); });
+$('toast-undo-btn').addEventListener('click', () => { undo(); });
+$('add-btn').addEventListener('click', () => openTopicModal());
+$('search-input').addEventListener('input', e => { query = e.target.value.trim().toLowerCase(); renderApp(); });
+$('clear-filters-btn').addEventListener('click', () => { selectedSubject = ALL; zoneFilter = 'all'; query = ''; $('search-input').value = ''; renderApp(); });
+$('form-subject-select').addEventListener('change', e => $('form-subject-custom').classList.toggle('hidden', e.target.value !== '__custom__'));
+document.querySelectorAll('.preset-btn').forEach(b => b.addEventListener('click', () => selectPreset(b.dataset.preset)));
+$('revert-btn').addEventListener('click', () => revertLast($('edit-topic-id').value));
+$('modal-x').addEventListener('click', () => closeModal('topic-modal'));
+$('modal-cancel').addEventListener('click', () => closeModal('topic-modal'));
+$('confirm-cancel').addEventListener('click', () => { confirmFn = null; closeModal('confirm-modal'); });
+$('confirm-ok').addEventListener('click', () => { const f = confirmFn; confirmFn = null; closeModal('confirm-modal'); if (f) f(); });
+['topic-modal', 'confirm-modal'].forEach(id => $(id).addEventListener('mousedown', e => { if (e.target === $(id)) { confirmFn = null; closeModal(id); } }));
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (!$('confirm-modal').classList.contains('hidden')) { confirmFn = null; closeModal('confirm-modal'); }
+  else if (!$('topic-modal').classList.contains('hidden')) closeModal('topic-modal');
+  else closeMenu();
+});
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { $('header-date').textContent = headerDate(); renderApp(); } });
+
+initTheme();
+$('header-date').textContent = headerDate();
+load();
+renderApp();
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); // ব্রাউজার যেন ডেটা নিজে না মোছে
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
