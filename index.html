@@ -16,13 +16,14 @@
 <style>
 @font-face{font-family:'SolaimanLipi';src:local('SolaimanLipi'),url('https://cdn.jsdelivr.net/gh/fontdesh/SolaimanLipi@master/SolaimanLipi.woff2') format('woff2');font-display:swap}
 @font-face{font-family:'Kalpurush';src:local('Kalpurush'),url('https://cdn.jsdelivr.net/gh/fontdesh/Kalpurush@master/kalpurush.woff2') format('woff2');font-display:swap}
+html{font-size:17px}
 body{-webkit-tap-highlight-color:transparent}
 .no-scrollbar::-webkit-scrollbar{display:none}.no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
 @keyframes slideIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 .card-animate{animation:slideIn .2s ease-out forwards}
 </style>
 <script>
-tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['"SolaimanLipi"','"Kalpurush"','"Hind Siliguri"','"Noto Sans Bengali"','"Inter"','sans-serif'],display:['"Inter"','"SolaimanLipi"','"Hind Siliguri"','sans-serif']}}}}
+tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['"Hind Siliguri"','"Noto Sans Bengali"','"SolaimanLipi"','"Kalpurush"','"Inter"','sans-serif'],display:['"Inter"','"SolaimanLipi"','"Hind Siliguri"','sans-serif']}}}}
 </script>
 </head>
 <body class="min-h-screen flex flex-col font-sans antialiased bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-200">
@@ -126,9 +127,10 @@ tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['"SolaimanLip
         <div class="grid grid-cols-4 gap-1.5" id="schedule-preset-buttons">
           <button type="button" data-preset="1" class="preset-btn">১ দিন পর</button>
           <button type="button" data-preset="3" class="preset-btn">৩ দিন পর</button>
-          <button type="button" data-preset="none" class="preset-btn">স্বাভাবিক (৩০ দিন)</button>
+          <button type="button" data-preset="none" class="preset-btn">স্বাভাবিক</button>
           <button type="button" data-preset="custom" class="preset-btn">তারিখ দিন</button>
         </div>
+        <p class="text-[11px] text-emerald-800 dark:text-emerald-300">স্বাভাবিক = পড়ার পর ০–৯ দিন 🟢, ১০–১৯ দিন 🟡, ২০+ দিন 🔴</p>
         <div id="custom-next-date-wrapper" class="hidden pt-1">
           <input type="date" id="form-next-due-date" class="w-full px-3 py-2 rounded-xl border border-emerald-300 bg-white dark:bg-slate-800 text-xs">
         </div>
@@ -164,7 +166,7 @@ tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['"SolaimanLip
 'use strict';
 const $ = id => document.getElementById(id);
 const KEY = 'smart_study_tracker_final_v1', THEME_KEY = 'smart_study_tracker_theme', BACKUP_KEY = KEY + '_backup';
-const ALL = 'সব বিষয়', MAX_DAYS = 30; // কোনো টপিক এর বেশি দিন due-এর বাইরে থাকবে না; "স্বাভাবিক" = শেষ রিভিশন + ৩০ দিন
+const ALL = 'সব বিষয়', MAX_DAYS = 30, NORMAL_YELLOW = 10, NORMAL_RED = 20; // স্বাভাবিক: ০–৯ দিন সবুজ, ১০–১৯ হলুদ, ২০+ লাল; নিজের দেওয়া তারিখ সর্বোচ্চ ৩০ দিন
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 const BN = ['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
 const toBn = n => String(n).replace(/\d/g, d => BN[d]);
@@ -219,7 +221,7 @@ function demoTopics() {
     mk('demo-2', 'সাধারণ জ্ঞান', 'বাংলাদেশের সংবিধান ও গুরুত্বপূর্ণ সংশোধনীসমূহ', 'পৃষ্ঠা ১১২-১২৫', '• সংবিধান কার্যকর হয় ১৬ ডিসেম্বর ১৯৭২।\n• মৌলিক অধিকার: অনুচ্ছেদ ২৭–৪৪।', o(-15), [o(-12), o(-1)], o(2)),
     mk('demo-3', 'ইংরেজি', 'Conditional Sentences & Right Form of Verbs', 'পৃষ্ঠা ৪২-৫০', '• 3rd Conditional: If + Past Perfect, Sub + would have + V3.', o(-8), [o(-6), t], o(20)),
     mk('demo-4', 'গণিত', 'শতকরা ও লাভ-ক্ষতি', 'পৃষ্ঠা ৮-১৬', '• লাভ% = (লাভ ÷ ক্রয়মূল্য) × ১০০', t, [], o(1)),
-    mk('demo-5', 'বিজ্ঞান ও আইসিটি', 'ইন্টারনেট ও নেটওয়ার্ক', 'পৃষ্ঠা ২০-২৮', '', o(-12), [o(-5)], null),
+    mk('demo-5', 'বিজ্ঞান ও আইসিটি', 'ইন্টারনেট ও নেটওয়ার্ক', 'পৃষ্ঠা ২০-২৮', '', o(-20), [o(-12)], null),
     mk('demo-6', 'গণিত', 'অনুপাত ও সমানুপাত', 'পৃষ্ঠা ৩০-৩৮', 'পরীক্ষার আগের দিন রিভিশন', o(-4), [o(-3)], o(9))
   ];
 }
@@ -301,14 +303,18 @@ function toast(msg, o = {}) {
 
 /* ---------- Priority logic (পরবর্তী রিভিশন তারিখই মূল ভিত্তি) ---------- */
 function effDue(t) {
-  const cap = addDays(t.lastRevisedDate || t.createdDate, MAX_DAYS);
-  return t.nextDueDate && t.nextDueDate < cap ? t.nextDueDate : cap; // নির্ধারিত তারিখ থাকলে সেটা, তবে ৩০ দিনের বেশি নয়
+  const base = t.lastRevisedDate || t.createdDate;
+  if (!t.nextDueDate) return addDays(base, NORMAL_RED); // স্বাভাবিক: ২০ দিনে লাল
+  const cap = addDays(base, MAX_DAYS);
+  return t.nextDueDate < cap ? t.nextDueDate : cap; // নিজের দেওয়া তারিখ, তবে ৩০ দিনের বেশি নয়
 }
 function evaluate(t) {
   const td = today(), due = effDue(t), left = diffDays(td, due);
   const revisedToday = t.history.some(h => h.date === td);
   const createdToday = t.createdDate === td && t.history.length === 0;
-  const zone = left <= 0 ? 'red' : left <= 3 ? 'yellow' : 'green';
+  const manual = !!t.nextDueDate;
+  const ago = Math.max(0, diffDays(t.lastRevisedDate || t.createdDate, td));
+  const zone = manual ? (left <= 0 ? 'red' : left <= 3 ? 'yellow' : 'green') : (ago >= NORMAL_RED ? 'red' : ago >= NORMAL_YELLOW ? 'yellow' : 'green');
   const sky = revisedToday || createdToday;
   const S = {
     red: ['bg-rose-500 animate-pulse', 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950 dark:text-rose-300', 'border-l-4 border-l-rose-500 border-slate-200 dark:border-slate-800'],
@@ -316,7 +322,7 @@ function evaluate(t) {
     green: sky ? ['bg-sky-500', 'bg-sky-100 text-sky-800 border-sky-300 dark:bg-sky-950 dark:text-sky-300', 'border-l-4 border-l-sky-500 border-slate-200 dark:border-slate-800']
                : ['bg-emerald-500', 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300', 'border-l-4 border-l-emerald-500 border-slate-200 dark:border-slate-800']
   }[zone];
-  const badge = left < 0 ? `🚨 ওভারডিউ: ${toBn(-left)} দিন` : left === 0 ? '🎯 আজকের নির্ধারিত' : `⏳ পরের রিভিশন: ${toBn(left)} দিন পরে`;
+  const badge = !manual ? (ago === 0 ? (createdToday ? '🌱 আজকে নতুন পড়া' : '✅ আজকে রিভিশন') : `সর্বশেষ: ${toBn(ago)} দিন আগে`) : left < 0 ? `🚨 ওভারডিউ: ${toBn(-left)} দিন` : left === 0 ? '🎯 আজকের নির্ধারিত' : `⏳ পরের রিভিশন: ${toBn(left)} দিন পরে`;
   return { zone, due, left, revisedToday, createdToday, badge, dot: S[0], badgeCls: S[1], border: S[2] };
 }
 const SUBJ_COLORS = { 'বাংলা': 'bg-pink-50 text-pink-700 border-pink-200 dark:bg-pink-950/50 dark:text-pink-300', 'সাধারণ জ্ঞান': 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/50 dark:text-sky-300', 'গণিত': 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/50 dark:text-purple-300', 'ইংরেজি': 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-300' };
@@ -411,12 +417,12 @@ $('topic-form').addEventListener('submit', e => {
 const CARDS = [
   ['new_today', '🌱 আজকে নতুন', 'bg-teal-50/70 dark:bg-teal-950/30 border-teal-300 dark:border-teal-800 hover:border-teal-500', 'text-teal-800 dark:text-teal-300', 'text-teal-700 dark:text-teal-300'],
   ['today', '✅ আজকে রিভিশন', 'bg-sky-50/70 dark:bg-sky-950/30 border-sky-300 dark:border-sky-800 hover:border-sky-500', 'text-sky-800 dark:text-sky-300', 'text-sky-700 dark:text-sky-300'],
-  ['red', '🔴 জরুরি (due/overdue)', 'bg-white dark:bg-slate-900 border-rose-200 dark:border-rose-900 hover:border-rose-400', 'text-rose-700 dark:text-rose-400', 'text-rose-600 dark:text-rose-400'],
-  ['yellow', '🟡 সময় (৩ দিনের মধ্যে)', 'bg-white dark:bg-slate-900 border-amber-200 dark:border-amber-900 hover:border-amber-400', 'text-amber-700 dark:text-amber-400', 'text-amber-600 dark:text-amber-400'],
-  ['green', '🟢 টাটকা (পরে)', 'bg-white dark:bg-slate-900 border-emerald-200 dark:border-emerald-900 hover:border-emerald-400', 'text-emerald-700 dark:text-emerald-400', 'text-emerald-600 dark:text-emerald-400'],
+  ['red', '🔴 জরুরি (২০+ / due)', 'bg-white dark:bg-slate-900 border-rose-200 dark:border-rose-900 hover:border-rose-400', 'text-rose-700 dark:text-rose-400', 'text-rose-600 dark:text-rose-400'],
+  ['yellow', '🟡 সময় (১০–১৯ / ৩ দিনে)', 'bg-white dark:bg-slate-900 border-amber-200 dark:border-amber-900 hover:border-amber-400', 'text-amber-700 dark:text-amber-400', 'text-amber-600 dark:text-amber-400'],
+  ['green', '🟢 টাটকা (০–৯ / পরে)', 'bg-white dark:bg-slate-900 border-emerald-200 dark:border-emerald-900 hover:border-emerald-400', 'text-emerald-700 dark:text-emerald-400', 'text-emerald-600 dark:text-emerald-400'],
   ['all', '📚 মোট', 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-slate-400', 'text-slate-700 dark:text-slate-300', 'text-slate-800 dark:text-white']
 ];
-const SECTIONS = { red: '🔴 জরুরি — রিভিশনের সময় হয়েছে', yellow: '🟡 কাছাকাছি — ৩ দিনের মধ্যে', green: '🟢 টাটকা — রিভিশনের তারিখ এখনো দূরে' };
+const SECTIONS = { red: '🔴 জরুরি — রিভিশনের সময় হয়েছে', yellow: '🟡 সময় হয়ে আসছে', green: '🟢 টাটকা' };
 
 function renderApp() {
   const infos = topics.map(evaluate), c = { new_today: 0, today: 0, red: 0, yellow: 0, green: 0, all: topics.length };
@@ -463,7 +469,7 @@ function card(t, i, n) {
   const meta = el('div', { class: 'flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400' },
     t.pages && el('span', { text: '📖 ' + t.pages }), el('span', { text: '🌱 ১ম পড়া: ' + fmt(t.createdDate) }),
     el('span', { text: '🔄 শেষ রিভিশন: ' + fmt(t.lastRevisedDate) }),
-    el('span', { class: 'text-amber-700 dark:text-amber-400 font-semibold', text: `🎯 ${t.nextDueDate && t.nextDueDate <= i.due ? 'নির্ধারিত' : 'স্বাভাবিক (৩০ দিন)'}: ${fmt(i.due)}` }));
+    el('span', { class: 'text-amber-700 dark:text-amber-400 font-semibold', text: `🎯 ${t.nextDueDate && t.nextDueDate <= i.due ? 'নির্ধারিত' : 'স্বাভাবিক (২০ দিনে লাল)'}: ${fmt(i.due)}` }));
   const panel = !tab ? null :
     tab === 'notes' ? el('div', { class: 'p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-700 dark:text-slate-200 whitespace-pre-line leading-relaxed', text: t.notes || 'কোনো নোট লেখা হয়নি।' }) :
     tab === 'history' ? el('div', { class: 'p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-1' },
@@ -474,7 +480,7 @@ function card(t, i, n) {
       const q = d => el('button', { class: 'py-1.5 rounded-lg bg-white dark:bg-slate-900 border text-xs font-bold cursor-pointer', onclick: () => setNext(t.id, addDays(today(), d)) }, `+${toBn(d)} দিন পর`);
       return el('div', { class: 'p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-2' },
         el('div', { class: 'flex items-center justify-between' }, el('span', { class: 'text-xs font-bold text-amber-700 dark:text-amber-400', text: 'দ্রুত পরের রিভিশন সেট করুন:' }),
-          t.nextDueDate && el('button', { class: 'text-xs text-rose-600 underline cursor-pointer', onclick: () => setNext(t.id, null) }, '৩০ দিনের স্বাভাবিকে ফেরান')),
+          t.nextDueDate && el('button', { class: 'text-xs text-rose-600 underline cursor-pointer', onclick: () => setNext(t.id, null) }, 'স্বাভাবিক করুন')),
         el('div', { class: 'grid grid-cols-3 gap-1.5' }, q(1), q(2), q(3)),
         el('div', { class: 'flex gap-2' }, inp, el('button', { class: 'px-3.5 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold cursor-pointer', onclick: () => { if (!inp.value) return; setNext(t.id, inp.value); } }, 'সেট করুন')));
     })();
