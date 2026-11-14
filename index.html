@@ -16,6 +16,7 @@
 <style>
 @font-face{font-family:'SolaimanLipi';src:local('SolaimanLipi'),url('https://cdn.jsdelivr.net/gh/fontdesh/SolaimanLipi@master/SolaimanLipi.woff2') format('woff2');font-display:swap}
 @font-face{font-family:'Kalpurush';src:local('Kalpurush'),url('https://cdn.jsdelivr.net/gh/fontdesh/Kalpurush@master/kalpurush.woff2') format('woff2');font-display:swap}
+@font-face{font-family:'LocalBn';src:url('fonts/bn.ttf') format('truetype');font-weight:100 900;font-display:swap}
 html{font-size:17px}
 body{-webkit-tap-highlight-color:transparent}
 .no-scrollbar::-webkit-scrollbar{display:none}.no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
@@ -23,7 +24,7 @@ body{-webkit-tap-highlight-color:transparent}
 .card-animate{animation:slideIn .2s ease-out forwards}
 </style>
 <script>
-tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['"Hind Siliguri"','"Noto Sans Bengali"','"SolaimanLipi"','"Kalpurush"','"Inter"','sans-serif'],display:['"Inter"','"SolaimanLipi"','"Hind Siliguri"','sans-serif']}}}}
+tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['"LocalBn"','"Hind Siliguri"','"Noto Sans Bengali"','"SolaimanLipi"','"Kalpurush"','"Inter"','sans-serif'],display:['"Inter"','"SolaimanLipi"','"Hind Siliguri"','sans-serif']}}}}
 </script>
 </head>
 <body class="min-h-screen flex flex-col font-sans antialiased bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-200">
@@ -59,10 +60,10 @@ tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['"Hind Siligu
           <span class="text-[11px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300" id="menu-theme-badge">Light</span>
         </button>
         <div class="border-t border-slate-100 dark:border-slate-700 my-1"></div>
-        <button id="m-share" class="w-full px-4 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer">☁️ Drive-এ ব্যাকআপ পাঠান</button>
+        <button id="m-safety" class="w-full px-4 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer">🛟 নিরাপদ কপি থেকে ফেরান</button>
         <button id="m-json" class="w-full px-4 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer">💾 ব্যাকআপ ডাউনলোড (JSON)</button>
         <label class="w-full px-4 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2.5 text-slate-700 dark:text-slate-200 cursor-pointer">📂 ব্যাকআপ রিস্টোর
-          <input type="file" id="import-json-input" accept=".json,application/json" class="hidden"></label>
+          <input type="file" id="import-json-input" class="hidden"></label>
         <button id="m-csv" class="w-full px-4 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer">📊 এক্সেল (CSV) ডাউনলোড</button>
         <div class="border-t border-slate-100 dark:border-slate-700 my-1"></div>
         <button id="m-demo" class="w-full px-4 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-700 text-amber-600 dark:text-amber-400 cursor-pointer">🔄 ডেমো রিসেট</button>
@@ -148,6 +149,15 @@ tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['"Hind Siligu
         <button type="submit" class="px-5 py-2.5 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm cursor-pointer">সংরক্ষণ</button>
       </div>
     </form>
+  </div>
+</div>
+
+<div id="safety-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" role="dialog" aria-modal="true">
+  <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-5 space-y-3">
+    <h3 class="text-base font-bold text-slate-900 dark:text-white">🛟 নিরাপদ কপি (সর্বশেষ ৫টি)</h3>
+    <p class="text-xs text-slate-500 dark:text-slate-400">যেকোনো একটি বেছে ডেটা ফিরিয়ে আনুন।</p>
+    <div id="safety-list" class="space-y-2 max-h-[55vh] overflow-y-auto"></div>
+    <div class="flex justify-end pt-1"><button id="safety-close" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 cursor-pointer">বন্ধ</button></div>
   </div>
 </div>
 
@@ -531,6 +541,29 @@ function download(blob, name) {
   const u = URL.createObjectURL(blob), a = el('a', { href: u, download: name });
   document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 1000);
 }
+const SAFE_KEY = KEY + '_safety';
+function readSafety() { try { const a = JSON.parse(localStorage.getItem(SAFE_KEY)); if (Array.isArray(a)) return a.filter(x => x && Array.isArray(x.topics) && x.at); } catch (e) {} return []; }
+function saveSafety(label) { // সর্বশেষ ৫টি আলাদা কপি রাখে; ফাঁকা ডেটা কখনো কপি হয় না
+  if (!topics.length) return;
+  const cur = JSON.stringify(topics), list = readSafety();
+  if (list[0] && JSON.stringify(list[0].topics) === cur) return;
+  list.unshift({ at: new Date().toISOString(), label, topics: JSON.parse(cur) });
+  try { localStorage.setItem(SAFE_KEY, JSON.stringify(list.slice(0, 5))); } catch (e) {}
+}
+function openSafety() {
+  const list = readSafety();
+  if (!list.length) { toast('এখনো কোনো নিরাপদ কপি নেই।', { error: true }); return; }
+  $('safety-list').replaceChildren(...list.map(item => {
+    const d = new Date(item.at), time = `${toBn(pad(d.getHours()))}:${toBn(pad(d.getMinutes()))}`;
+    return el('button', { class: 'w-full text-left px-3.5 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm cursor-pointer', onclick: () => {
+      closeModal('safety-modal');
+      askConfirm('এই কপি ফিরিয়ে আনবেন?', `${fmt(isoOf(d))}, ${time} — ${toBn(item.topics.length)}টি টপিক। বর্তমান ডেটার একটা কপি আগে রাখা হবে।`, () => {
+        saveSafety('ফেরানোর আগে'); snapshot(); topics = normalizeList(item.topics).out; selectedSubject = ALL; zoneFilter = 'all'; commit('নিরাপদ কপি ফিরিয়ে আনা হয়েছে!');
+      });
+    } }, el('div', { class: 'font-bold text-slate-800 dark:text-slate-100', text: `${fmt(isoOf(d))}, ${time}` }), el('div', { class: 'text-xs text-slate-500 dark:text-slate-400', text: `${toBn(item.topics.length)}টি টপিক · ${item.label || ''}` }));
+  }));
+  openModal('safety-modal');
+}
 const LB_KEY = KEY + '_last_backup', FR_KEY = KEY + '_first_run', BACKUP_DAYS = 7;
 let bannerHidden = false;
 function markBackup() { try { localStorage.setItem(LB_KEY, today()); } catch (e) {} updateBanner(); }
@@ -558,7 +591,7 @@ function updateBanner() {
   b.className = 'p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800 flex flex-wrap items-center justify-between gap-2';
   b.replaceChildren(el('span', { class: 'text-xs sm:text-sm text-amber-900 dark:text-amber-300', text: `☁️ ${toBn(diffDays(base, today()))} দিন ধরে ব্যাকআপ নেওয়া হয়নি।` }),
     el('div', { class: 'flex gap-2' },
-      el('button', { class: 'px-3 py-1.5 rounded-xl bg-amber-500 text-slate-950 text-xs font-bold cursor-pointer', onclick: shareBackup }, 'এখনই ব্যাকআপ'),
+      el('button', { class: 'px-3 py-1.5 rounded-xl bg-amber-500 text-slate-950 text-xs font-bold cursor-pointer', onclick: exportJSON }, 'এখনই ব্যাকআপ'),
       el('button', { class: 'px-3 py-1.5 rounded-xl text-xs text-slate-600 dark:text-slate-300 cursor-pointer', onclick: () => { bannerHidden = true; updateBanner(); } }, 'পরে')));
 }
 function exportJSON() {
@@ -576,7 +609,7 @@ function importJSON(e) {
     const { out, skipped } = normalizeList(parsed);
     if (!out.length) { toast('⚠️ ফাইলে কোনো বৈধ টপিক নেই — বর্তমান ডেটা অক্ষত।', { error: true }); return; }
     askConfirm('ব্যাকআপ রিস্টোর করবেন?', `${toBn(out.length)}টি টপিক পাওয়া গেছে${skipped ? ` (${toBn(skipped)}টি অবৈধ বাদ)` : ''}। বর্তমান ডেটা প্রতিস্থাপিত হবে, তবে আগে নিরাপদ কপি রাখা হবে ও Undo করা যাবে।`, () => {
-      try { localStorage.setItem(BACKUP_KEY, JSON.stringify(topics)); } catch (_) {}
+      saveSafety('ইমপোর্টের আগে');
       snapshot(); topics = out; selectedSubject = ALL; zoneFilter = 'all'; commit('রিস্টোর সফল হয়েছে!');
     });
   };
@@ -601,12 +634,12 @@ const closeMenu = () => menu().classList.add('hidden');
 const act = (id, fn) => $(id).addEventListener('click', () => { closeMenu(); fn(); });
 $('menu-btn').addEventListener('click', e => { e.stopPropagation(); menu().classList.toggle('hidden'); });
 document.addEventListener('click', e => { if (!$('more-menu-wrapper').contains(e.target)) closeMenu(); });
-act('m-theme', toggleTheme); act('m-json', exportJSON); act('m-share', shareBackup); act('m-csv', exportCSV);
+act('m-theme', toggleTheme); act('m-json', exportJSON); act('m-safety', openSafety); act('m-csv', exportCSV);
 act('m-demo', () => askConfirm('ডেমো রিসেট করবেন?', 'বর্তমান সব টপিক ডেমো ডেটা দিয়ে প্রতিস্থাপিত হবে। আগে নিরাপদ কপি রাখা হবে ও Undo করা যাবে।', () => {
-  try { localStorage.setItem(BACKUP_KEY, JSON.stringify(topics)); } catch (_) {}
+  saveSafety('ডেমো রিসেটের আগে');
   snapshot(); topics = demoTopics(); selectedSubject = ALL; zoneFilter = 'all'; tabs = {}; commit('ডেমো ডেটা লোড হয়েছে!');
 }));
-act('m-clear', () => askConfirm('সব ডাটা মুছবেন?', 'সব টপিক মুছে ফেলা হবে (Undo করা যাবে)।', () => { snapshot(); topics = []; commit('সব ডেটা মুছে ফেলা হয়েছে!'); }));
+act('m-clear', () => askConfirm('সব ডাটা মুছবেন?', 'সব টপিক মুছে ফেলা হবে। কিছুক্ষণ Undo করা যাবে, আর মেনুর "নিরাপদ কপি থেকে ফেরান" দিয়েও ফেরানো যাবে।', () => { saveSafety('সব মোছার আগে'); snapshot(); topics = []; commit('সব ডেটা মুছে ফেলা হয়েছে!'); }));
 $('import-json-input').addEventListener('change', e => { closeMenu(); importJSON(e); });
 $('toast-undo-btn').addEventListener('click', () => { undo(); });
 $('add-btn').addEventListener('click', () => openTopicModal());
@@ -617,11 +650,13 @@ document.querySelectorAll('.preset-btn').forEach(b => b.addEventListener('click'
 $('revert-btn').addEventListener('click', () => revertLast($('edit-topic-id').value));
 $('modal-x').addEventListener('click', () => closeModal('topic-modal'));
 $('modal-cancel').addEventListener('click', () => closeModal('topic-modal'));
+$('safety-close').addEventListener('click', () => closeModal('safety-modal'));
 $('confirm-cancel').addEventListener('click', () => { confirmFn = null; closeModal('confirm-modal'); });
 $('confirm-ok').addEventListener('click', () => { const f = confirmFn; confirmFn = null; closeModal('confirm-modal'); if (f) f(); });
-['topic-modal', 'confirm-modal'].forEach(id => $(id).addEventListener('mousedown', e => { if (e.target === $(id)) { confirmFn = null; closeModal(id); } }));
+['topic-modal', 'confirm-modal', 'safety-modal'].forEach(id => $(id).addEventListener('mousedown', e => { if (e.target === $(id)) { confirmFn = null; closeModal(id); } }));
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
+  if (!$('safety-modal').classList.contains('hidden') && $('confirm-modal').classList.contains('hidden')) { closeModal('safety-modal'); return; }
   if (!$('confirm-modal').classList.contains('hidden')) { confirmFn = null; closeModal('confirm-modal'); }
   else if (!$('topic-modal').classList.contains('hidden')) closeModal('topic-modal');
   else closeMenu();
@@ -631,6 +666,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) { $(
 initTheme();
 $('header-date').textContent = headerDate();
 load();
+{ const l = readSafety(); if (topics.length && (!l[0] || l[0].at.slice(0, 10) !== new Date().toISOString().slice(0, 10))) saveSafety('দৈনিক অটো কপি'); }
 renderApp();
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); // ব্রাউজার যেন ডেটা নিজে না মোছে
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
