@@ -60,6 +60,9 @@ tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['"LocalBn"','
           <span class="text-[11px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300" id="menu-theme-badge">Light</span>
         </button>
         <div class="border-t border-slate-100 dark:border-slate-700 my-1"></div>
+        <button id="m-notes" class="w-full px-4 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer">📝 নোটস</button>
+        <button id="m-plan" class="w-full px-4 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer">📋 স্টাডি প্ল্যান</button>
+        <div class="border-t border-slate-100 dark:border-slate-700 my-1"></div>
         <button id="m-safety" class="w-full px-4 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer">🛟 নিরাপদ কপি থেকে ফেরান</button>
         <button id="m-json" class="w-full px-4 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer">💾 ব্যাকআপ ডাউনলোড (JSON)</button>
         <label class="w-full px-4 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2.5 text-slate-700 dark:text-slate-200 cursor-pointer">📂 ব্যাকআপ রিস্টোর
@@ -150,6 +153,14 @@ tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['"LocalBn"','
       </div>
     </form>
   </div>
+</div>
+
+<div id="panel" class="fixed inset-0 z-40 hidden flex-col bg-slate-50 dark:bg-slate-950">
+  <div class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center gap-3">
+    <button id="panel-back" class="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-700 dark:text-slate-200 cursor-pointer" aria-label="ফিরে যান">←</button>
+    <h2 id="panel-title" class="flex-1 min-w-0 truncate text-lg font-bold text-slate-900 dark:text-white"></h2>
+  </div>
+  <div id="panel-body" class="flex-1 overflow-y-auto w-full max-w-3xl mx-auto px-4 py-4 space-y-3"></div>
 </div>
 
 <div id="safety-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" role="dialog" aria-modal="true">
@@ -568,7 +579,7 @@ const LB_KEY = KEY + '_last_backup', FR_KEY = KEY + '_first_run', BACKUP_DAYS = 
 let bannerHidden = false;
 function markBackup() { try { localStorage.setItem(LB_KEY, today()); } catch (e) {} updateBanner(); }
 async function shareBackup() {
-  const blob = new Blob([JSON.stringify(topics, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify(backupData(), null, 2)], { type: 'application/json' });
   const name = 'Smart_Study_Backup.json'; // একই নাম — Drive-এ পুরোনো ভার্সন জমা থাকে
   try {
     const file = new File([blob], name, { type: 'application/json' });
@@ -595,7 +606,7 @@ function updateBanner() {
       el('button', { class: 'px-3 py-1.5 rounded-xl text-xs text-slate-600 dark:text-slate-300 cursor-pointer', onclick: () => { bannerHidden = true; updateBanner(); } }, 'পরে')));
 }
 function exportJSON() {
-  try { markBackup(); download(new Blob([JSON.stringify(topics, null, 2)], { type: 'application/json' }), `Smart_Study_Backup_${today()}.json`); toast('ব্যাকআপ ডাউনলোড হয়েছে!'); }
+  try { markBackup(); download(new Blob([JSON.stringify(backupData(), null, 2)], { type: 'application/json' }), `Smart_Study_Backup_${today()}.json`); toast('ব্যাকআপ ডাউনলোড হয়েছে!'); }
   catch (e) { toast('⚠️ ব্যাকআপ তৈরি করা যায়নি।', { error: true }); }
 }
 function importJSON(e) {
@@ -605,11 +616,14 @@ function importJSON(e) {
   r.onload = ev => {
     let parsed;
     try { parsed = JSON.parse(ev.target.result); } catch (err) { toast('⚠️ ভুল JSON ফাইল — বর্তমান ডেটা অক্ষত আছে।', { error: true }); return; }
+    let extra = null;
+    if (parsed && !Array.isArray(parsed) && Array.isArray(parsed.topics)) { extra = parsed; parsed = parsed.topics; }
     if (!Array.isArray(parsed)) { toast('⚠️ ফাইলের কাঠামো ঠিক নয় (তালিকা প্রয়োজন) — বর্তমান ডেটা অক্ষত।', { error: true }); return; }
     const { out, skipped } = normalizeList(parsed);
     if (!out.length) { toast('⚠️ ফাইলে কোনো বৈধ টপিক নেই — বর্তমান ডেটা অক্ষত।', { error: true }); return; }
     askConfirm('ব্যাকআপ রিস্টোর করবেন?', `${toBn(out.length)}টি টপিক পাওয়া গেছে${skipped ? ` (${toBn(skipped)}টি অবৈধ বাদ)` : ''}। বর্তমান ডেটা প্রতিস্থাপিত হবে, তবে আগে নিরাপদ কপি রাখা হবে ও Undo করা যাবে।`, () => {
       saveSafety('ইমপোর্টের আগে');
+      if (extra) applyExtra(extra);
       snapshot(); topics = out; selectedSubject = ALL; zoneFilter = 'all'; commit('রিস্টোর সফল হয়েছে!');
     });
   };
@@ -628,13 +642,147 @@ function exportCSV() {
   catch (e) { toast('⚠️ CSV তৈরি করা যায়নি।', { error: true }); }
 }
 
+/* ---------- নোটস ও স্টাডি প্ল্যান (আলাদা পাতা; মূল রিভিশন তালিকার সাথে মেশে না) ---------- */
+const NOTES_KEY = KEY + '_notes', PLAN_KEY = KEY + '_plan';
+const uid = () => 'x' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const str = (v, n) => (typeof v === 'string' ? v : '').slice(0, n);
+const okDate = v => (typeof v === 'string' && ISO.test(v) ? v : null);
+function cleanNotes(o) {
+  const subs = o && Array.isArray(o.subjects) ? o.subjects : [];
+  return { subjects: subs.filter(s => s && str(s.name, 60).trim()).map(s => ({
+    id: str(String(s.id || ''), 40) || uid(), name: str(s.name, 60).trim(),
+    notes: (Array.isArray(s.notes) ? s.notes : []).filter(n => n && typeof n === 'object').map(n => ({ id: str(String(n.id || ''), 40) || uid(), title: str(n.title, 200).trim(), text: str(n.text, 20000), at: okDate(n.at) || today() }))
+  })) };
+}
+function cleanPlan(a) {
+  return (Array.isArray(a) ? a : []).filter(p => p && typeof p === 'object' && okDate(p.date)).map(p => ({
+    id: str(String(p.id || ''), 40) || uid(), date: p.date, subject: str(p.subject, 60).trim(), book: str(p.book, 100).trim(),
+    from: str(String(p.from ?? ''), 20).trim(), to: str(String(p.to ?? ''), 20).trim(), done: p.done === true, doneAt: p.done === true ? (okDate(p.doneAt) || p.date) : null
+  }));
+}
+let notesData = { subjects: [] }, planData = [];
+function loadExtra() {
+  try { notesData = cleanNotes(JSON.parse(localStorage.getItem(NOTES_KEY))); } catch (e) {}
+  try { planData = cleanPlan(JSON.parse(localStorage.getItem(PLAN_KEY))); } catch (e) {}
+}
+function saveExtra() {
+  try { localStorage.setItem(NOTES_KEY, JSON.stringify(notesData)); localStorage.setItem(PLAN_KEY, JSON.stringify(planData)); return true; }
+  catch (e) { toast('⚠️ সংরক্ষণ ব্যর্থ! স্টোরেজ ভরা বা ব্লকড। এখনই JSON ব্যাকআপ নিন।', { error: true }); return false; }
+}
+function backupData() { return { app: 'smart-study-tracker', version: 7, topics, notes: notesData, plan: planData }; }
+function applyExtra(x) { if (x.notes) notesData = cleanNotes(x.notes); if (x.plan) planData = cleanPlan(x.plan); saveExtra(); }
+
+const BTN = 'px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer', CARD = 'p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm';
+const INP = 'w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none';
+const GHOST = BTN + ' border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200';
+const panel = { mode: null, subj: null, note: null, planDate: today(), adding: false };
+function openPanel(mode) { Object.assign(panel, { mode, subj: null, note: null, planDate: today(), adding: false }); openModal('panel'); renderPanel(); }
+function panelBack() {
+  if (panel.mode === 'notes' && panel.note) panel.note = null;
+  else if (panel.mode === 'notes' && panel.subj) panel.subj = null;
+  else { closeModal('panel'); return; }
+  renderPanel();
+}
+function renderPanel() {
+  const box = $('panel-body'); box.replaceChildren();
+  const s = notesData.subjects.find(x => x.id === panel.subj);
+  $('panel-title').textContent = panel.mode === 'plan' ? '📋 স্টাডি প্ল্যান' : (s ? s.name : '📝 নোটস');
+  if (panel.mode === 'plan') renderPlan(box); else renderNotes(box);
+  box.scrollTop = 0;
+}
+
+function renderNotes(box) {
+  const subj = notesData.subjects.find(s => s.id === panel.subj);
+  if (!subj) {
+    panel.subj = null;
+    const inp = el('input', { class: INP, maxlength: 60, placeholder: 'নতুন বিষয়ের নাম (যেমন: বাংলা)' });
+    const add = () => {
+      const n = inp.value.trim(); if (!n) return;
+      if (notesData.subjects.some(s => s.name === n)) { toast('⚠️ এই বিষয় আগে থেকেই আছে।', { error: true }); return; }
+      notesData.subjects.push({ id: uid(), name: n, notes: [] }); saveExtra(); renderPanel();
+    };
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); add(); } });
+    box.append(el('div', { class: 'flex gap-2' }, inp, el('button', { class: BTN + ' bg-emerald-600 text-white shrink-0', onclick: add }, '+ যোগ করুন')));
+    if (!notesData.subjects.length) box.append(el('p', { class: 'text-xs text-slate-500 dark:text-slate-400 px-1', text: 'এখনো কোনো বিষয় নেই। ওপরে বিষয়ের নাম লিখে যোগ করুন।' }));
+    notesData.subjects.forEach(s => box.append(el('button', { class: CARD + ' w-full text-left flex items-center justify-between cursor-pointer', onclick: () => { panel.subj = s.id; renderPanel(); } },
+      el('span', { class: 'font-bold break-words', text: s.name }), el('span', { class: 'text-xs text-slate-500 shrink-0', text: `${toBn(s.notes.length)}টি নোট ›` }))));
+    return;
+  }
+  if (panel.note) {
+    const ex = panel.note === 'new' ? null : subj.notes.find(n => n.id === panel.note);
+    const t = el('input', { class: INP, maxlength: 200, placeholder: 'শিরোনাম', value: ex ? ex.title : '' });
+    const x = el('textarea', { class: INP, rows: 14, maxlength: 20000, placeholder: 'নোট লিখুন...' }); x.value = ex ? ex.text : '';
+    box.append(t, x, el('div', { class: 'flex flex-wrap gap-2' },
+      el('button', { class: BTN + ' bg-emerald-600 text-white', onclick: () => {
+        const title = t.value.trim(), text = x.value; if (!title && !text.trim()) { toast('⚠️ শিরোনাম বা নোট লিখুন।', { error: true }); return; }
+        if (ex) Object.assign(ex, { title, text, at: today() }); else subj.notes.push({ id: uid(), title, text, at: today() });
+        panel.note = null; saveExtra(); renderPanel(); toast('নোট সংরক্ষিত হয়েছে!');
+      } }, 'সংরক্ষণ'),
+      el('button', { class: GHOST, onclick: () => { panel.note = null; renderPanel(); } }, 'বাতিল'),
+      ex && el('button', { class: BTN + ' text-rose-600', onclick: () => askConfirm('নোট মুছবেন?', 'নোটটি স্থায়ীভাবে মুছে যাবে।', () => { subj.notes = subj.notes.filter(n => n.id !== ex.id); panel.note = null; saveExtra(); renderPanel(); toast('নোট মুছে ফেলা হয়েছে!'); }) }, '🗑️ মুছুন')));
+    return;
+  }
+  box.append(el('div', { class: 'flex gap-2' },
+    el('button', { class: BTN + ' bg-emerald-600 text-white', onclick: () => { panel.note = 'new'; renderPanel(); } }, '+ নতুন নোট'),
+    el('button', { class: BTN + ' text-rose-600 border border-rose-200 dark:border-rose-900', onclick: () => askConfirm('বিষয়টি মুছবেন?', `"${subj.name}" ও এর ${toBn(subj.notes.length)}টি নোট স্থায়ীভাবে মুছে যাবে।`, () => { notesData.subjects = notesData.subjects.filter(s => s.id !== subj.id); panel.subj = null; saveExtra(); renderPanel(); toast('বিষয় মুছে ফেলা হয়েছে!'); }) }, '🗑️ বিষয় মুছুন')));
+  if (!subj.notes.length) box.append(el('p', { class: 'text-xs text-slate-500 dark:text-slate-400 px-1', text: 'এই বিষয়ে এখনো কোনো নোট নেই।' }));
+  [...subj.notes].sort((a, b) => b.at.localeCompare(a.at)).forEach(n => box.append(el('button', { class: CARD + ' w-full text-left space-y-1 cursor-pointer', onclick: () => { panel.note = n.id; renderPanel(); } },
+    el('div', { class: 'font-bold break-words', text: n.title || 'শিরোনামহীন' }),
+    el('div', { class: 'text-xs text-slate-500 dark:text-slate-400 break-words', text: n.text.replace(/\s+/g, ' ').slice(0, 90) }),
+    el('div', { class: 'text-[11px] text-slate-400', text: fmt(n.at) }))));
+}
+
+function renderPlan(box) {
+  const td = today(), d = panel.planDate;
+  const go = v => { panel.planDate = v; renderPanel(); };
+  const dateInp = el('input', { type: 'date', class: INP + ' flex-1', value: d });
+  dateInp.addEventListener('change', () => { if (dateInp.value) go(dateInp.value); });
+  box.append(el('div', { class: 'flex items-center gap-2' },
+    el('button', { class: GHOST, 'aria-label': 'আগের দিন', onclick: () => go(addDays(d, -1)) }, '‹'), dateInp,
+    el('button', { class: GHOST, 'aria-label': 'পরের দিন', onclick: () => go(addDays(d, 1)) }, '›'),
+    d !== td && el('button', { class: GHOST, onclick: () => go(td) }, 'আজ')));
+  box.append(el('div', { class: 'text-sm font-bold text-slate-600 dark:text-slate-300 px-1', text: fmt(d) + (d === td ? ' (আজ)' : '') }));
+  if (panel.adding) {
+    const subs = [...new Set(['বাংলা', 'সাধারণ জ্ঞান', 'গণিত', 'ইংরেজি', 'বিজ্ঞান ও আইসিটি', ...topics.map(t => t.subject), ...notesData.subjects.map(s => s.name)])];
+    const f = (ph, o) => el('input', { class: INP, maxlength: 100, placeholder: ph, ...o });
+    const sub = f('বিষয়', { list: 'plan-subjects' }), book = f('কোন বই থেকে'), from = f('পৃষ্ঠা — থেকে', { inputmode: 'numeric' }), to = f('পৃষ্ঠা — পর্যন্ত', { inputmode: 'numeric' }), dt = el('input', { type: 'date', class: INP, value: d });
+    box.append(el('div', { class: CARD + ' space-y-2.5' }, el('datalist', { id: 'plan-subjects' }, subs.map(s => el('option', { value: s }))), sub, book,
+      el('div', { class: 'grid grid-cols-2 gap-2' }, from, to),
+      el('div', {}, el('label', { class: 'block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1', text: 'কোন দিন পড়বেন?' }), dt),
+      el('div', { class: 'flex gap-2 justify-end' }, el('button', { class: GHOST, onclick: () => { panel.adding = false; renderPanel(); } }, 'বাতিল'),
+        el('button', { class: BTN + ' bg-emerald-600 text-white', onclick: () => {
+          if (!sub.value.trim() && !book.value.trim()) { toast('⚠️ বিষয় বা বইয়ের নাম দিন।', { error: true }); return; }
+          planData.push({ id: uid(), date: dt.value || d, subject: sub.value.trim(), book: book.value.trim(), from: from.value.trim(), to: to.value.trim(), done: false, doneAt: null });
+          panel.planDate = dt.value || d; panel.adding = false; saveExtra(); renderPanel(); toast('প্ল্যানে যোগ হয়েছে!');
+        } }, 'সংরক্ষণ'))));
+  } else box.append(el('button', { class: 'w-full py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm cursor-pointer', onclick: () => { panel.adding = true; renderPanel(); } }, '+ যোগ করুন'));
+
+  const detail = (p, late) => [p.book, p.from && p.to ? `পৃষ্ঠা ${p.from}–${p.to}` : p.from ? `পৃষ্ঠা ${p.from}` : '', late ? '📅 ' + fmt(p.date) : ''].filter(Boolean).join(' · ');
+  const row = (p, done, late) => el('div', { class: CARD + ' flex items-start gap-3' },
+    el('button', { class: `mt-0.5 w-7 h-7 shrink-0 rounded-full border-2 flex items-center justify-center text-sm font-bold cursor-pointer ${done ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-slate-300 dark:border-slate-600'}`, 'aria-label': done ? 'আবার বাকি করুন' : 'সম্পন্ন করুন',
+      onclick: () => { p.done = !p.done; p.doneAt = p.done ? today() : null; saveExtra(); renderPanel(); if (p.done) toast('✅ সম্পন্ন!'); } }, done ? '✓' : ''),
+    el('div', { class: 'flex-1 min-w-0' },
+      el('div', { class: 'font-bold break-words' + (done ? ' line-through opacity-70' : ''), text: p.subject || p.book }),
+      el('div', { class: 'text-xs text-slate-500 dark:text-slate-400 break-words', text: detail(p, late) })),
+    el('button', { class: 'text-slate-400 hover:text-rose-600 cursor-pointer', 'aria-label': 'মুছুন', onclick: () => askConfirm('মুছে ফেলবেন?', 'এই কাজটি প্ল্যান থেকে মুছে যাবে।', () => { planData = planData.filter(x => x.id !== p.id); saveExtra(); renderPanel(); }) }, '🗑️'));
+  const sec = (title, list, done, late, hint) => {
+    if (!list.length && !hint) return;
+    box.append(el('h3', { class: 'text-sm font-bold text-slate-600 dark:text-slate-300 pt-2 px-1', text: `${title} (${toBn(list.length)})` }));
+    if (!list.length) box.append(el('p', { class: 'text-xs text-slate-500 dark:text-slate-400 px-1', text: hint }));
+    list.forEach(p => box.append(row(p, done, late)));
+  };
+  sec('📌 পরিকল্পনা', planData.filter(p => !p.done && p.date === d), false, false, 'এই দিনের জন্য কোনো কাজ নেই।');
+  if (d === td) sec('⏰ আগের দিনের বাকি', planData.filter(p => !p.done && p.date < td), false, true);
+  sec('✅ সম্পন্ন', planData.filter(p => p.done && p.doneAt === d), true, false);
+}
+
 /* ---------- Wiring ---------- */
 const menu = () => $('more-dropdown');
 const closeMenu = () => menu().classList.add('hidden');
 const act = (id, fn) => $(id).addEventListener('click', () => { closeMenu(); fn(); });
 $('menu-btn').addEventListener('click', e => { e.stopPropagation(); menu().classList.toggle('hidden'); });
 document.addEventListener('click', e => { if (!$('more-menu-wrapper').contains(e.target)) closeMenu(); });
-act('m-theme', toggleTheme); act('m-json', exportJSON); act('m-safety', openSafety); act('m-csv', exportCSV);
+act('m-theme', toggleTheme); act('m-json', exportJSON); act('m-safety', openSafety); act('m-notes', () => openPanel('notes')); act('m-plan', () => openPanel('plan')); act('m-csv', exportCSV);
 act('m-demo', () => askConfirm('ডেমো রিসেট করবেন?', 'বর্তমান সব টপিক ডেমো ডেটা দিয়ে প্রতিস্থাপিত হবে। আগে নিরাপদ কপি রাখা হবে ও Undo করা যাবে।', () => {
   saveSafety('ডেমো রিসেটের আগে');
   snapshot(); topics = demoTopics(); selectedSubject = ALL; zoneFilter = 'all'; tabs = {}; commit('ডেমো ডেটা লোড হয়েছে!');
@@ -650,6 +798,7 @@ document.querySelectorAll('.preset-btn').forEach(b => b.addEventListener('click'
 $('revert-btn').addEventListener('click', () => revertLast($('edit-topic-id').value));
 $('modal-x').addEventListener('click', () => closeModal('topic-modal'));
 $('modal-cancel').addEventListener('click', () => closeModal('topic-modal'));
+$('panel-back').addEventListener('click', panelBack);
 $('safety-close').addEventListener('click', () => closeModal('safety-modal'));
 $('confirm-cancel').addEventListener('click', () => { confirmFn = null; closeModal('confirm-modal'); });
 $('confirm-ok').addEventListener('click', () => { const f = confirmFn; confirmFn = null; closeModal('confirm-modal'); if (f) f(); });
@@ -657,6 +806,7 @@ $('confirm-ok').addEventListener('click', () => { const f = confirmFn; confirmFn
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   if (!$('safety-modal').classList.contains('hidden') && $('confirm-modal').classList.contains('hidden')) { closeModal('safety-modal'); return; }
+  if (!$('panel').classList.contains('hidden') && $('confirm-modal').classList.contains('hidden')) { panelBack(); return; }
   if (!$('confirm-modal').classList.contains('hidden')) { confirmFn = null; closeModal('confirm-modal'); }
   else if (!$('topic-modal').classList.contains('hidden')) closeModal('topic-modal');
   else closeMenu();
@@ -665,7 +815,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) { $(
 
 initTheme();
 $('header-date').textContent = headerDate();
-load();
+load(); loadExtra();
 { const l = readSafety(); if (topics.length && (!l[0] || l[0].at.slice(0, 10) !== new Date().toISOString().slice(0, 10))) saveSafety('দৈনিক অটো কপি'); }
 renderApp();
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); // ব্রাউজার যেন ডেটা নিজে না মোছে
