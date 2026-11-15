@@ -79,6 +79,7 @@ tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['"LocalBn"','
 <main class="flex-1 max-w-5xl w-full mx-auto px-4 py-4 space-y-3.5">
   <div id="backup-banner" class="hidden"></div>
   <section id="cards" class="grid grid-cols-2 sm:grid-cols-6 gap-2"></section>
+  <div id="plan-today" class="hidden"></div>
   <section>
     <button id="add-btn" class="w-full py-3.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-bold text-sm sm:text-base shadow-sm hover:shadow transition flex items-center justify-center gap-2 cursor-pointer">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path></svg>
@@ -460,7 +461,7 @@ function renderApp() {
     onclick: () => { selectedSubject = s; renderApp(); }
   }, `${s === ALL ? '🔀 সব' : s} (${toBn(s === ALL ? topics.length : topics.filter(t => t.subject === s).length)})`)));
   $('clear-filters-btn').classList.toggle('hidden', selectedSubject === ALL && zoneFilter === 'all' && !query);
-  renderQueue(); updateBanner();
+  renderQueue(); updateBanner(); renderPlanToday();
 }
 
 function renderQueue() {
@@ -666,8 +667,19 @@ function loadExtra() {
   try { planData = cleanPlan(JSON.parse(localStorage.getItem(PLAN_KEY))); } catch (e) {}
 }
 function saveExtra() {
-  try { localStorage.setItem(NOTES_KEY, JSON.stringify(notesData)); localStorage.setItem(PLAN_KEY, JSON.stringify(planData)); return true; }
+  try { localStorage.setItem(NOTES_KEY, JSON.stringify(notesData)); localStorage.setItem(PLAN_KEY, JSON.stringify(planData)); renderPlanToday(); return true; }
   catch (e) { toast('⚠️ সংরক্ষণ ব্যর্থ! স্টোরেজ ভরা বা ব্লকড। এখনই JSON ব্যাকআপ নিন।', { error: true }); return false; }
+}
+function renderPlanToday() { // আজ সম্পন্ন হওয়া প্ল্যান-কাজ মূল পাতায় দেখায় (রিভিশন তালিকায় ঢোকে না)
+  const b = $('plan-today'); if (!b) return;
+  const td = today(), done = planData.filter(p => p.done && p.doneAt === td), left = planData.filter(p => !p.done && p.date === td).length;
+  b.classList.toggle('hidden', !done.length); if (!done.length) return;
+  b.className = 'p-3.5 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border-2 border-emerald-300 dark:border-emerald-800 cursor-pointer';
+  b.replaceChildren(el('div', { class: 'flex items-center justify-between gap-2' },
+    el('span', { class: 'text-xs font-bold text-emerald-800 dark:text-emerald-300', text: `📋 আজকের প্ল্যান সম্পন্ন (${toBn(done.length)})` }),
+    left ? el('span', { class: 'text-[11px] text-slate-500 dark:text-slate-400', text: `বাকি: ${toBn(left)}টি` }) : null),
+    ...done.map(p => el('div', { class: 'text-xs text-slate-700 dark:text-slate-200 break-words pt-1', text: '✓ ' + [p.subject, p.book, p.from && p.to ? `পৃষ্ঠা ${p.from}–${p.to}` : p.from ? `পৃষ্ঠা ${p.from}` : ''].filter(Boolean).join(' · ') })));
+  b.onclick = () => openPanel('plan');
 }
 function backupData() { return { app: 'smart-study-tracker', version: 7, topics, notes: notesData, plan: planData }; }
 function applyExtra(x) { if (x.notes) notesData = cleanNotes(x.notes); if (x.plan) planData = cleanPlan(x.plan); saveExtra(); }
