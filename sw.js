@@ -1,5 +1,5 @@
-// আপডেট দিলে CACHE নামের সংখ্যা বাড়ান (v8 -> v9)
-const CACHE = 'sst-v8';
+// আপডেট দিলে CACHE নামের সংখ্যা বাড়ান (v9 -> v10)
+const CACHE = 'sst-v9';
 const SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(async c => {
